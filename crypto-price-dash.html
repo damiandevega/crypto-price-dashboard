@@ -1,8 +1,10 @@
 <link rel="import" href="bower_components/polymer/polymer-element.html">
 <link rel="import" href="bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="bower_components/paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="bower_components/paper-button/paper-button.html">
 
 <script src="bower_components/chart.js/dist/Chart.js"></script>
+<script src="bower_components/moment/min/moment.min.js"></script>
 
 <dom-module id="crypto-price-dash">
 
@@ -19,7 +21,12 @@
 
         <div hidden$="[[loading]]">
             <template is="dom-repeat" items="[[currencies]]">
-                <p>[[item.code]] - [[item.name]] - $[[item.price]]</p>
+                <paper-button 
+                    noink 
+                    on-click="_getCurrencyHistoricData"
+                    data-item$="[[item.code]]">
+                    [[item.name]] - $[[item.price]]
+                </paper-button>
             </template>
         </div>
 
@@ -77,6 +84,9 @@
             }
 
             _getCurrencyHistoricData(currency) {
+                if (currency instanceof Event) {
+                    currency = currency.target.dataset.item;
+                }
                 var ajax = this.$.coinbase;
                 ajax.url = 'https://api.coinbase.com/v2/prices/' + currency + '-USD/historic?period=week';
                 ajax.generateRequest();
@@ -101,10 +111,17 @@
                 var label = [];
                 var price = [];
                 data.response.data.prices.forEach(function(element) {
-                    label.push(element.time);
+                    label.push(this._computeDateTime(element.time));
                     price.push(element.price);
                 }, this);
                 this._generateLineChart(label, price, code);
+            }
+
+            _computeDateTime(datestring) {
+                if (datestring) {
+                    return moment(datestring, "YYYY-MM-DDThh:mm:aaZ").format("M/DD/YYYY h:mm a");
+                }
+                return datestring;
             }
 
             _generateLineChart(label, price, graphName) {
